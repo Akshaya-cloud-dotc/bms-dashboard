@@ -1,0 +1,17 @@
+[Unit]
+Description=BMS push to Render dashboard
+After=network-online.target bms-backend.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=aksh
+WorkingDirectory=/home/aksh/bms_project
+EnvironmentFile=/home/aksh/bms_project/render.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/aksh/bms_project/venv/bin/python /home/aksh/bms_project/render_forwarder.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
