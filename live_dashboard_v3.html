@@ -1666,7 +1666,7 @@ async function poll(){
 
   try{
     const controller = new AbortController();
-    const timeout = setTimeout(()=>controller.abort(), 3000); // 3s timeout
+    const timeout = setTimeout(()=>controller.abort(), 10000); // 10s: tunnels/Wi-Fi can be slow
     const res = await fetch(API_BASE + '/api/telemetry', {signal: controller.signal});
     clearTimeout(timeout);
 
@@ -1962,6 +1962,9 @@ async function poll(){
     }
   } catch(e){
     consecutiveErrors++;
+    // Ignore brief network hiccups: keep showing the last good data until
+    // several polls in a row have failed.
+    if (consecutiveErrors < 5) return;
     document.getElementById('liveBadge').className='live-badge offline';
     if(e.name==='AbortError'){
       document.getElementById('liveText').textContent='TIMEOUT — backend not responding';
@@ -1986,8 +1989,15 @@ async function poll(){
 //  INIT
 // ─────────────────────────────────────────────
 initTrend();
-poll();
-setInterval(poll, 1000);
+// Never run two polls at once: slow responses must not pile up requests.
+let pollInFlight = false;
+async function pollGuarded(){
+  if (pollInFlight) return;
+  pollInFlight = true;
+  try { await poll(); } finally { pollInFlight = false; }
+}
+pollGuarded();
+setInterval(pollGuarded, 1000);
 </script>
 </body>
 </html>
